@@ -1,54 +1,38 @@
-import { prisma } from '../database/prisma.js'
-import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
+import type { FastifyReply, FastifyRequest } from 'fastify'
+import { registerService, loginService, profileService } from '../services/authService.js'
 
-export async function loginController(request: any, reply: any) {
-  const { email, password } = request.body
-
-  const user = await prisma.user.findUnique({
-    where: { email }
-  })
-
-  if (!user) {
+export async function registerController(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const user = await registerService(request.body)
+    return reply.status(201).send(user)
+  } catch (error: any) {
     return reply.status(400).send({
-      error: 'Usuário não encontrado'
+      error: error.message || 'Erro ao registrar usuário'
     })
-  }
-
-  const isValidPassword = await bcrypt.compare(password, user.password)
-
-  if (!isValidPassword) {
-    return reply.status(400).send({
-      error: 'Senha inválida'
-    })
-  }
-
-  return {
-    message: 'Login realizado com sucesso',
-    user
   }
 }
 
-export async function registerController(request: any, reply: any) {
-  const { name, email, password } = request.body
+export async function loginController(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const result = await loginService(request.body)
+    return reply.send(result)
+  } catch (error: any) {
+    return reply.status(400).send({
+      error: error.message || 'Erro no login'
+    })
+  }
+}
 
-  const hashedPassword = await bcrypt.hash(password, 10)
+export async function profileController(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const userId = Number((request as any).user.sub)
 
-try {   
-  const user = await prisma.user.create({
-    data: {
-      name,
-      email,
-      password: hashedPassword
-    }
-  })
+    const user = await profileService(userId)
 
-  return user
-} catch (error: any) {
-  if (error.code === 'P2002') {
-    return reply.status(400).send({ error: 'Email já cadastrado' })
-  } 
-
-  throw error
-}           
+    return reply.send(user)
+  } catch (error: any) {
+    return reply.status(400).send({
+      error: error.message || 'Erro ao buscar perfil'
+    })
+  }
 }

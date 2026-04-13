@@ -1,8 +1,15 @@
 import type { FastifyInstance } from 'fastify'
-import { registerController } from '../controllers/authControllers.js'
-import { loginController } from '../controllers/authControllers.js'
+import {
+  loginController,
+  profileController,
+  registerController
+} from '../controllers/authControllers.js'
+import { authMiddleware } from '../middlewares/authMiddleware.js'
 
 export async function authRoutes(app: FastifyInstance) {
   app.post('/register', registerController)
   app.post('/login', loginController)
+  app.get('/profile', { preHandler: authMiddleware }, profileController)
 }
+
+
