@@ -2,6 +2,7 @@ import { prisma } from '../database/prisma.js'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { z } from 'zod'
+import { AppError } from '../errors/AppError.js'
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Nome muito curto'),
@@ -43,13 +44,13 @@ export async function loginService(body: unknown) {
   })
 
   if (!user) {
-    throw new Error('USER_NOT_FOUND')
+    throw new AppError('Usuário não encontrado', 404, 'USER_NOT_FOUND')
   }
 
   const isValidPassword = await bcrypt.compare(password, user.password)
 
   if (!isValidPassword) {
-    throw new Error('INVALID_PASSWORD')
+    throw new AppError('Senha inválida', 400, 'INVALID_PASSWORD')
   }
 
   const token = jwt.sign(
@@ -64,12 +65,11 @@ export async function loginService(body: unknown) {
   )
 
   return {
-    message: 'Login realizado com sucesso',
     token,
     user: {
-      id: user.id,
-      name: user.name,
-      email: user.email
+    id: user.id,
+    name: user.name,
+    email: user.email
     }
   }
 }
@@ -80,7 +80,7 @@ export async function profileService(userId: number) {
   })
 
   if (!user) {
-    throw new Error('USER_NOT_FOUND')
+    throw new AppError('Usuário não encontrado', 404, 'USER_NOT_FOUND')
   }
 
   return {
